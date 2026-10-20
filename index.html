@@ -171,7 +171,7 @@ html,body{overflow-x:clip;max-width:100%}
 </div>
 <aside class="sum" aria-live="polite"><h3>Your estimate</h3><ul id="lines"></ul><div class="tot" id="tot">$0</div><p class="note" id="note"></p><p class="err" id="err" role="alert"></p><button class="btn" type="submit">Send inquiry</button></aside>
 </form>
-<div class="done" id="done" hidden><div class="ck">✓</div><h2 style="font-size:36px">Inquiry sent.</h2><p id="dmsg"></p><ul id="dl"></ul></div>
+<div class="done" id="done" hidden><div class="ck">✓</div><h2 style="font-size:36px">Inquiry sent.</h2><p id="dmsg"></p><ul id="dl"></ul><a class="btn ghost" id="dsms" href="#" style="margin-top:26px">Text us this inquiry too</a></div>
 </div></section>
 </main>
 <footer><div class="wrap"><a class="logo" href="#top"><img class="lg lg-ft" alt="ADH Details"></a><span>Elk River, MN and surrounding areas</span><span>Quality work speaks for itself.</span></div></footer>
@@ -195,14 +195,26 @@ function calc(){
  est=money(lo,hi);const t=$('#tot');t.textContent=est;t.style.fontSize=lo!==hi?'42px':'';t.classList.remove('pop');void t.offsetWidth;t.classList.add('pop');
 }
 $$('#form input[type=radio],#form input[type=checkbox]').forEach(i=>i.addEventListener('change',calc));calc();
-$('#form').addEventListener('submit',e=>{e.preventDefault();
- const n=$('#nm').value.trim(),p=$('#ph').value.trim(),m=$('#em').value.trim(),er=$('#err');
+const TO='adhdetails612@gmail.com',SMS='+16126165095';
+$('#form').addEventListener('submit',async e=>{e.preventDefault();
+ const n=$('#nm').value.trim(),p=$('#ph').value.trim(),m=$('#em').value.trim(),ms=$('#ms').value.trim(),er=$('#err'),btn=$('#form button[type=submit]');
  if(!n){er.textContent='Please enter your name.';$('#nm').focus();return}
  if(!p&&!m){er.textContent='Add a phone number or email so we can reach you.';$('#ph').focus();return}
  if(m&&!/^\S+@\S+\.\S+$/.test(m)){er.textContent='That email address looks incomplete.';$('#em').focus();return}
  er.textContent='';
+ const sel=L.map(r=>r[0]+': '+r[1]).join('; '),vh=veh()==='suv'?'SUV/truck':'Sedan/coupe';
+ const body=`New ADH Details inquiry\nName: ${n}\nPhone: ${p||'-'}\nEmail: ${m||'-'}\nVehicle: ${vh}\nServices: ${sel}\nEstimate: ${est}\nMessage: ${ms||'-'}`;
+ const sms='sms:'+SMS+'?&body='+encodeURIComponent(body);
+ btn.disabled=true;btn.textContent='Sending…';
+ let ok=false;
+ try{const pl={_subject:'New ADH Details inquiry: '+n,_template:'table',_captcha:'false',Name:n,Phone:p||'-',Vehicle:vh,Services:sel,Estimate:est,Message:ms||'-'};if(m)pl.email=m;
+  const r=await fetch('https://formsubmit.co/ajax/'+TO,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(pl)});
+  const j=await r.json();ok=r.ok&&String(j.success)!=='false'}catch(_){}
+ btn.disabled=false;btn.textContent='Send inquiry';
+ if(!ok){er.innerHTML='We couldn’t send that. Please <a href="'+sms+'" style="text-decoration:underline">text us at 612-616-5095</a> instead.';return}
  $('#dmsg').textContent=`Thanks, ${n}. We’ll reach out by ${p&&m?'phone or email':p?'phone':'email'} to confirm your detail and a time.`;
  $('#dl').innerHTML=L.map(r=>`<li><span>${r[0]}</span><span>${r[1]}</span></li>`).join('')+`<li><b>Estimate</b><b>${est}</b></li>`;
+ $('#dsms').href=sms;
  $('#form').hidden=true;$('#done').hidden=false;$('#done').scrollIntoView({behavior:'smooth',block:'center'});
 });
 const gl=$('#glow');gl.style.left='70%';gl.style.top='30%';
